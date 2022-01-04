@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+    <name>5 Second Challenge</name>
+    <directory>5 second challenge</directory>
+    <id>2705841783</id>
+    <description>You only have 5 seconds to try and clear each uncleared room. If the timer reaches 0 then you'll be sent to another uncleared room. Every time you re-enter an uncleared room you previously couldn't clear you'll get an additional 5 seconds to try and clear it (5, 10, 15, etc).
+
+You can use this mechanic to access all rooms on the floor for free (treasure room, ultra secret room, etc). However, you can't use this mechanic to access certain special rooms that don't show up on the map (angel room, devil room, etc).
+
+The timer won't start for rooms that have already been cleared (or are considered clear like challenge rooms), aren't on the map, or other one-offs (mom, hush, delirium, dogma).
+
+There's 5 custom challenges. You can choose where you want to end: Mom, It Lives (Mom's Heart), Mother, Blue Baby, or The Lamb. The challenges remove the curse of the lost and curse of the maze.
+
+If you have Mod Config Menu, there's an option to enable the timer for any normal or hard mode run. You can also change the interval to 10 seconds, and select font and animation settings.</description>
+    <version>1.2</version>
+    <visibility>Public</visibility>
+    <tag id="Lua"/>
+    <tag id="Challenges"/>
+</metadata>
