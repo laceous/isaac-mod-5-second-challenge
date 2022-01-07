@@ -10,11 +10,12 @@ mod.roomTime = 5
 mod.rng = RNG()
 mod.font = Font()
 mod.fonts = {}
-mod.kcolor = KColor(1, 1, 1, 1) -- white w/ full alpha
+mod.kcolor = KColor(255/255, 255/255, 255/255, 1) -- white w/ full alpha
 mod.colors = {}
 mod.fontSample = '0123456789'
 mod.showFontSample = false
 mod.animations = { 'none', 'fade', 'nap', 'pixelate', 'teleport', 'teleport (shorter)' }
+mod.roomTypes = { 'normal + boss', 'normal + boss + special', 'normal + boss + special + ultrasecret' }
 
 mod.state = {}
 mod.state.enableEverywhere = false
@@ -25,6 +26,7 @@ mod.state.selectedFont = 'upheaval'
 mod.state.selectedColor = 'white'
 mod.state.selectedAlpha = 10 -- this will be divided by 10 to give us a number between 0 and 1
 mod.state.selectedAnimation = 'teleport'
+mod.state.selectedRoomTypes = 'normal + boss + special + ultrasecret'
 
 function mod:onGameStart(isContinue)
   local level = game:GetLevel()
@@ -67,6 +69,9 @@ function mod:onGameStart(isContinue)
       end
       if type(state.selectedAnimation) == 'string' and mod:getSelectedAnimationIndex(state.selectedAnimation) >= 1 then
         mod.state.selectedAnimation = state.selectedAnimation
+      end
+      if type(state.selectedRoomTypes) == 'string' and mod:getSelectedRoomTypesIndex(state.selectedRoomTypes) >= 1 then
+        mod.state.selectedRoomTypes = state.selectedRoomTypes
       end
     end
     
@@ -161,55 +166,44 @@ function mod:onRenderPlayer()
   end
 end
 
-function mod:onRenderMenu()
-  -- this is from ModConfigMenu
-  if ScreenHelper == nil then
-    return
-  end
-  
-  if mod.showFontSample then
-    -- the positioning is copied from mod config menu
-    local pos = ScreenHelper.GetScreenCenter() + Vector(68, -18)
-    mod.font:DrawString(mod.fontSample, pos.X - mod.font:GetStringWidth(mod.fontSample)/2, pos.Y, mod.kcolor, 0, true)
-    mod.showFontSample = false
-  end
-end
-
 function mod:switchToRandomRoom()
   local level = game:GetLevel()
   local rooms = level:GetRooms()
   local randomRooms = {}
   
-  -- level:GetRandomRoomIndex(bool, int) exists, but it doesn't do exactly what we're doing here
+  -- game:MoveToRandomRoom(bool, int) and level:GetRandomRoomIndex(bool, int) exist, but they don't do exactly what we're doing here
   for i = 0, #rooms - 1 do
     local roomDesc = rooms:Get(i)
     if not roomDesc.Clear and mod:allowRoomCountdown(roomDesc) and mod:getCurrentDimension() == mod:getDimension(roomDesc) then
       table.insert(randomRooms, roomDesc)
     end
   end
-
-  if next(randomRooms) ~= nil then
-    -- math.random(num) returns 1 to num
-    -- rng:RandomInt(num) returns 0 to num-1
-    -- we need the math.random behavior here because lua uses a 1-based index
-    local randomRoom = randomRooms[mod.rng:RandomInt(#randomRooms) + 1]
-    
-    -- most animation options seem to default back to FADE when used in the way we're using here
-    -- interestingly, GLOWING_HOURGLASS includes its actual behavior: ignoring the index you set and returning you to the previous room
-    if mod.state.selectedAnimation == 'fade' then
-      game:StartRoomTransition(randomRoom.SafeGridIndex, Direction.NO_DIRECTION, RoomTransitionAnim.FADE, nil, -1)
-    elseif mod.state.selectedAnimation == 'nap' then -- lol
-      game:StartRoomTransition(randomRoom.SafeGridIndex, Direction.NO_DIRECTION, RoomTransitionAnim.DEATH_CERTIFICATE, nil, -1)
-    elseif mod.state.selectedAnimation == 'pixelate' then
-      game:StartRoomTransition(randomRoom.SafeGridIndex, Direction.NO_DIRECTION, RoomTransitionAnim.PIXELATION, nil, -1)
-    elseif mod.state.selectedAnimation == 'teleport' then
-      game:StartRoomTransition(randomRoom.SafeGridIndex, Direction.NO_DIRECTION, RoomTransitionAnim.TELEPORT, nil, -1)
-    elseif mod.state.selectedAnimation == 'teleport (shorter)' then
-      game:StartRoomTransition(randomRoom.SafeGridIndex, Direction.NO_DIRECTION, RoomTransitionAnim.D7, nil, -1)
-    else -- none
-      level.LeaveDoor = -1                          -- https://github.com/Meowlala/RepentanceAPIIssueTracker/issues/244
-      game:ChangeRoom(randomRoom.SafeGridIndex, -1) -- the documentation says to use this over level:ChangeRoom
-    end
+  
+  if #randomRooms == 0 then
+    -- if no random rooms to choose from then reload the current room
+    table.insert(randomRooms, level:GetCurrentRoomDesc())
+  end
+  
+  -- math.random(num) returns 1 to num
+  -- rng:RandomInt(num) returns 0 to num-1
+  -- we need the math.random behavior here because lua uses a 1-based index
+  local randomRoom = randomRooms[mod.rng:RandomInt(#randomRooms) + 1]
+  
+  -- most animation options seem to default back to FADE when used in the way we're using here
+  -- interestingly, GLOWING_HOURGLASS includes its actual behavior: ignoring the index you set and returning you to the previous room
+  if mod.state.selectedAnimation == 'fade' then
+    game:StartRoomTransition(randomRoom.SafeGridIndex, Direction.NO_DIRECTION, RoomTransitionAnim.FADE, nil, -1)
+  elseif mod.state.selectedAnimation == 'nap' then -- lol
+    game:StartRoomTransition(randomRoom.SafeGridIndex, Direction.NO_DIRECTION, RoomTransitionAnim.DEATH_CERTIFICATE, nil, -1)
+  elseif mod.state.selectedAnimation == 'pixelate' then
+    game:StartRoomTransition(randomRoom.SafeGridIndex, Direction.NO_DIRECTION, RoomTransitionAnim.PIXELATION, nil, -1)
+  elseif mod.state.selectedAnimation == 'teleport' then
+    game:StartRoomTransition(randomRoom.SafeGridIndex, Direction.NO_DIRECTION, RoomTransitionAnim.TELEPORT, nil, -1)
+  elseif mod.state.selectedAnimation == 'teleport (shorter)' then
+    game:StartRoomTransition(randomRoom.SafeGridIndex, Direction.NO_DIRECTION, RoomTransitionAnim.D7, nil, -1)
+  else -- none
+    level.LeaveDoor = -1                          -- https://github.com/Meowlala/RepentanceAPIIssueTracker/issues/244
+    game:ChangeRoom(randomRoom.SafeGridIndex, -1) -- the documentation says to use this over level:ChangeRoom
   end
 end
 
@@ -248,6 +242,42 @@ function mod:allowRoomCountdown(roomDesc)
   
   -- dogma (this is too similar to hush)
   if stage == LevelStage.STAGE8 and roomDesc.Data.Shape == RoomShape.ROOMSHAPE_1x2 then
+    return false
+  end
+  
+  local roomTypes = {}
+  
+  -- normal + boss / normal + boss + special / normal + boss + special + ultrasecret
+  table.insert(roomTypes, RoomType.ROOM_DEFAULT)
+  table.insert(roomTypes, RoomType.ROOM_BOSS)
+  table.insert(roomTypes, RoomType.ROOM_MINIBOSS)
+  
+  -- other room types we shouldn't have to worry about:
+  -- ROOM_BLACK_MARKET, ROOM_BLUE, ROOM_BOSSRUSH, ROOM_DUNGEON, ROOM_GREED_EXIT, ROOM_TELEPORTER, ROOM_TELEPORTER_EXIT, ROOM_SECRET_EXIT
+  if mod.state.selectedRoomTypes == 'normal + boss + special' or mod.state.selectedRoomTypes == 'normal + boss + special + ultrasecret' then
+    table.insert(roomTypes, RoomType.ROOM_ANGEL)     -- can exist on the grid in a red room
+    table.insert(roomTypes, RoomType.ROOM_ARCADE)
+    table.insert(roomTypes, RoomType.ROOM_BARREN)    -- bedroom
+    table.insert(roomTypes, RoomType.ROOM_CHALLENGE) -- normal / boss
+    table.insert(roomTypes, RoomType.ROOM_CHEST)     -- vault
+    table.insert(roomTypes, RoomType.ROOM_CURSE)
+    table.insert(roomTypes, RoomType.ROOM_DEVIL)     -- can exist on the grid in a red room
+    table.insert(roomTypes, RoomType.ROOM_DICE)
+    table.insert(roomTypes, RoomType.ROOM_ISAACS)    -- bedroom
+    table.insert(roomTypes, RoomType.ROOM_LIBRARY)
+    table.insert(roomTypes, RoomType.ROOM_PLANETARIUM)
+    table.insert(roomTypes, RoomType.ROOM_SACRIFICE)
+    table.insert(roomTypes, RoomType.ROOM_SECRET)
+    table.insert(roomTypes, RoomType.ROOM_SHOP)
+    table.insert(roomTypes, RoomType.ROOM_SUPERSECRET)
+    table.insert(roomTypes, RoomType.ROOM_TREASURE)
+  end
+  
+  if mod.state.selectedRoomTypes == 'normal + boss + special + ultrasecret' then
+    table.insert(roomTypes, RoomType.ROOM_ULTRASECRET)
+  end
+  
+  if not mod:tableHasValue(roomTypes, roomDesc.Data.Type) then
     return false
   end
   
@@ -342,6 +372,24 @@ function mod:getSelectedAnimationIndex(name)
   return -1
 end
 
+function mod:getSelectedRoomTypesIndex(name)
+  for i, value in ipairs(mod.roomTypes) do
+    if name == value then
+      return i
+    end
+  end
+  return -1
+end
+
+function mod:tableHasValue(tbl, val)
+  for _, value in ipairs(tbl) do
+    if val == value then
+      return true
+    end
+  end
+  return false
+end
+
 function mod:populateFontsTable()
   -- these are all the fonts found in repentance with the resource extractor
   -- fonts are found in the main resources folder, as well as jp/kr/zh specific folders, these require that the language option is set to jp/kr/zh
@@ -401,11 +449,8 @@ function mod:populateColorsTable()
   table.insert(mod.colors, { 'purple', 128, 0, 128 })
 end
 
+-- start ModConfigMenu --
 function mod:setupModConfigMenu()
-  if ModConfigMenu == nil then
-    return
-  end
-  
   ModConfigMenu.AddSetting(
     mod.Name,
     'General',
@@ -460,6 +505,30 @@ function mod:setupModConfigMenu()
       Info = { 'Select a room transition animation' }
     }
   )
+  ModConfigMenu.AddSpace(mod.Name, 'General')
+  ModConfigMenu.AddSetting(
+    mod.Name,
+    'General',
+    {
+      Type = ModConfigMenu.OptionType.NUMBER,
+      CurrentSetting = function()
+        return mod:getSelectedRoomTypesIndex(mod.state.selectedRoomTypes)
+      end,
+      Minimum = 1,
+      Maximum = #mod.roomTypes,
+      Display = function()
+        return mod.state.selectedRoomTypes
+      end,
+      OnChange = function(n)
+        mod.state.selectedRoomTypes = mod.roomTypes[n]
+      end,
+      Info = { 'Select the room types this mod applies to' }
+    }
+  )
+  ModConfigMenu.AddText(mod.Name, 'General', 'boss: boss, miniboss')
+  ModConfigMenu.AddText(mod.Name, 'General', 'special: arcade, bedroom, challenge, curse,')
+  ModConfigMenu.AddText(mod.Name, 'General', 'dice, library, planetarium, sacrifice, secret,')
+  ModConfigMenu.AddText(mod.Name, 'General', 'shop, supersecret, treasure, vault')
   ModConfigMenu.AddSetting(
     mod.Name,
     'Display',
@@ -523,13 +592,27 @@ function mod:setupModConfigMenu()
   )
 end
 
+function mod:onRenderMenu()
+  if mod.showFontSample then
+    if ScreenHelper then                                           -- this is from ModConfigMenu
+      local pos = ScreenHelper.GetScreenCenter() + Vector(68, -18) -- the positioning is copied from ModConfigMenu
+      mod.font:DrawString(mod.fontSample, pos.X - mod.font:GetStringWidth(mod.fontSample)/2, pos.Y, mod.kcolor, 0, true)
+    end
+    mod.showFontSample = false
+  end
+end
+-- end ModConfigMenu --
+
 mod:populateFontsTable()
 mod:populateColorsTable()
-mod:setupModConfigMenu()
 mod:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, mod.onGameStart)
 mod:AddCallback(ModCallbacks.MC_PRE_GAME_EXIT, mod.onGameExit)
 mod:AddCallback(ModCallbacks.MC_POST_NEW_LEVEL, mod.onNewLevel)
 mod:AddCallback(ModCallbacks.MC_POST_NEW_ROOM, mod.onNewRoom)
 mod:AddCallback(ModCallbacks.MC_POST_UPDATE, mod.onUpdate)
 mod:AddCallback(ModCallbacks.MC_POST_RENDER, mod.onRenderPlayer)
-mod:AddCallback(ModCallbacks.MC_POST_RENDER, mod.onRenderMenu)
+
+if ModConfigMenu then
+  mod:setupModConfigMenu()
+  mod:AddCallback(ModCallbacks.MC_POST_RENDER, mod.onRenderMenu)
+end
