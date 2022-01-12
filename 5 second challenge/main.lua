@@ -327,6 +327,7 @@ function mod:getDimension(roomDesc)
 end
 
 function mod:isChallenge()
+  -- game.Challenge
   local challenge = Isaac.GetChallenge()
   return challenge == Isaac.GetChallengeIdByName('5 Second Challenge (Mom)') or
          challenge == Isaac.GetChallengeIdByName('5 Second Challenge (It Lives)') or
