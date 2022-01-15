@@ -153,8 +153,10 @@ function mod:onRenderPlayer()
   
   if mod.text ~= nil then
     for i = 0, game:GetNumPlayers() - 1 do
+      -- Isaac.GetPlayer(i)
       local player = game:GetPlayer(i)
       local playerPos = Isaac.WorldToScreen(player.Position)
+      -- game:GetLevel():GetCurrentRoom():IsMirrorWorld()
       if game:GetRoom():IsMirrorWorld() then
         local wtrp320x280 = Isaac.WorldToRenderPosition(Vector(320, 280)) -- center pos normal room, WorldToRenderPosition makes this work in large rooms too
         mod.font:DrawString(mod.text, wtrp320x280.X*2 - playerPos.X - mod.font:GetStringWidth(mod.text)/2, playerPos.Y, mod.kcolor, 0, true)
