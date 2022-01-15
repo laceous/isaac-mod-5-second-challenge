@@ -101,7 +101,8 @@ end
 
 function mod:onNewRoom()
   local level = game:GetLevel()
-  local roomDesc = level:GetCurrentRoomDesc()
+  -- level:GetRoomByIdx(level:GetCurrentRoomIndex(), -1) -- read/write
+  local roomDesc = level:GetCurrentRoomDesc()            -- read-only
   mod.roomStartTime = nil
   mod.text = nil
   mod.allowCountdown = mod:allowRoomCountdown(roomDesc)
@@ -122,6 +123,7 @@ function mod:onUpdate()
       mod.text = nil
     else
       -- game:GetRoom():GetFrameCount()
+      -- game:GetLevel():GetCurrentRoom():GetFrameCount()
       local frameCount = game:GetFrameCount()
       
       if mod.roomStartTime == nil then
