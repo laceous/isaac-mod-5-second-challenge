@@ -12,7 +12,7 @@ The timer won't start for rooms that have already been cleared (or are considere
 There's 5 custom challenges. You can choose where you want to end: Mom, It Lives (Mom's Heart), Mother, Blue Baby, or The Lamb. The challenges remove the curse of the lost and curse of the maze.
 
 If you have Mod Config Menu, there's an option to enable the timer for any normal or hard mode run. You can also change the interval to 10 seconds, select font and animation settings, and select which room types this mod applies to.</description>
-    <version>1.7</version>
+    <version>1.8</version>
     <visibility>Public</visibility>
     <tag id="Lua"/>
     <tag id="Challenges"/>
