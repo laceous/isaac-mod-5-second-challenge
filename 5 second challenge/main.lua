@@ -92,6 +92,7 @@ function mod:onGameExit()
   mod:SaveData(json.encode(mod.state))
 end
 
+-- this will clear room attempts when reseed is called
 function mod:onNewLevel()
   local level = game:GetLevel()
   local stageSeed = game:GetSeeds():GetStageSeed(level:GetStage())
