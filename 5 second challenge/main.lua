@@ -310,8 +310,7 @@ end
 
 function mod:getCurrentDimension()
   local level = game:GetLevel()
-  local currentRoom = level:GetCurrentRoomDesc()
-  return mod:getDimension(currentRoom)
+  return mod:getDimension(level:GetCurrentRoomDesc())
 end
 
 -- bit of a hack to get dimension info
