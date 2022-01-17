@@ -30,7 +30,8 @@ mod.state.selectedRoomTypes = 'normal + boss + special + ultrasecret'
 
 function mod:onGameStart(isContinue)
   local level = game:GetLevel()
-  local stageSeed = game:GetSeeds():GetStageSeed(level:GetStage())
+  local seeds = game:GetSeeds()
+  local stageSeed = seeds:GetStageSeed(level:GetStage())
   mod.state.stageSeed = stageSeed
   mod:seedRng()
   
@@ -95,7 +96,8 @@ end
 -- this will clear room attempts when reseed is called
 function mod:onNewLevel()
   local level = game:GetLevel()
-  local stageSeed = game:GetSeeds():GetStageSeed(level:GetStage())
+  local seeds = game:GetSeeds()
+  local stageSeed = seeds:GetStageSeed(level:GetStage())
   mod.state.stageSeed = stageSeed
   mod:clearRoomAttempts()
 end
@@ -130,14 +132,14 @@ function mod:onUpdate()
       if mod.roomStartTime == nil then
         mod.roomStartTime = frameCount
         if mod.incrementAttempt then
-          mod:incrementRoomAttempt(roomDesc.ListIndex)
+          mod:incrementRoomAttempt(roomDesc)
           mod.incrementAttempt = false
         end
       end
       
       -- 30 frames per second
       -- https://wofsauge.github.io/IsaacDocs/rep/Game.html#getframecount
-      local countdown = (mod:getRoomAttempt(roomDesc.ListIndex) * mod.roomTime) - math.floor((frameCount - mod.roomStartTime) / 30)
+      local countdown = (mod:getRoomAttempt(roomDesc) * mod.roomTime) - math.floor((frameCount - mod.roomStartTime) / 30)
       mod.text = tostring(countdown)
       
       if countdown == 0 then
@@ -295,13 +297,13 @@ function mod:clearRoomAttempts()
   end
 end
 
-function mod:getRoomAttempt(listIdx)
-  listIdx = tostring(listIdx)
+function mod:getRoomAttempt(roomDesc)
+  local listIdx = tostring(roomDesc.ListIndex)
   return mod.state.roomAttempts[listIdx]
 end
 
-function mod:incrementRoomAttempt(listIdx)
-  listIdx = tostring(listIdx) -- json.encode has trouble if this is numeric (tables are ambiguous -> array/object)
+function mod:incrementRoomAttempt(roomDesc)
+  local listIdx = tostring(roomDesc.ListIndex) -- json.encode has trouble if this is numeric (tables are ambiguous -> array/object)
   if mod.state.roomAttempts[listIdx] == nil then
     mod.state.roomAttempts[listIdx] = 1
   else
