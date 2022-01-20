@@ -340,7 +340,7 @@ function mod:isChallenge()
          challenge == Isaac.GetChallengeIdByName('5 Second Challenge (Mother)') or
          challenge == Isaac.GetChallengeIdByName('5 Second Challenge (Blue Baby)') or
          challenge == Isaac.GetChallengeIdByName('5 Second Challenge (The Lamb)') or
-         (challenge == Challenge.CHALLENGE_NULL and mod.state.enableEverywhere and not game:IsGreedMode())
+         (challenge == Challenge.CHALLENGE_NULL and mod.state.enableEverywhere and not game:IsGreedMode()) -- game.Difficulty
 end
 
 function mod:seedRng()
