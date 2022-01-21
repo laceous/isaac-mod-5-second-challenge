@@ -209,7 +209,7 @@ function mod:switchToRandomRoom()
   elseif mod.state.selectedAnimation == 'teleport (shorter)' then
     game:StartRoomTransition(randomRoom.SafeGridIndex, Direction.NO_DIRECTION, RoomTransitionAnim.D7, nil, -1)
   else -- none
-    level.LeaveDoor = -1                          -- https://github.com/Meowlala/RepentanceAPIIssueTracker/issues/244
+    level.LeaveDoor = DoorSlot.NO_DOOR_SLOT       -- https://github.com/Meowlala/RepentanceAPIIssueTracker/issues/244
     game:ChangeRoom(randomRoom.SafeGridIndex, -1) -- the documentation says to use this over level:ChangeRoom
   end
 end
