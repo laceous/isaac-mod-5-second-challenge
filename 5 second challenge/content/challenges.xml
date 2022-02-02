@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <challenges version="1">
-  <!-- https://wofsauge.github.io/IsaacDocs/rep/xml/challenges.html -->
-  <!-- Start with Isaac w/ D6 -->
-  <!-- The curse filter removes: curse of the lost, curse of the maze -->
-  <!-- Hard mode -->
-  <challenge id="1" name="5 Second Challenge (Mom)"       playertype="0" startingitems="105" endstage="6"  cursefilter="36" difficulty="1" />
-  <challenge id="2" name="5 Second Challenge (It Lives)"  playertype="0" startingitems="105" endstage="8"  cursefilter="36" difficulty="1" />
-  <challenge id="3" name="5 Second Challenge (Mother)"    playertype="0" startingitems="105" endstage="8"  cursefilter="36" difficulty="1" secretpath="true" />
-  <challenge id="4" name="5 Second Challenge (Blue Baby)" playertype="0" startingitems="105" endstage="11" cursefilter="36" difficulty="1" altpath="true" />
-  <challenge id="5" name="5 Second Challenge (The Lamb)"  playertype="0" startingitems="105" endstage="11" cursefilter="36" difficulty="1" altpath="false" />
+    <!-- https://wofsauge.github.io/IsaacDocs/rep/xml/challenges.html -->
+    <!-- Start with Isaac w/ D6 -->
+    <!-- The curse filter removes: curse of the lost, curse of the maze -->
+    <!-- Hard mode -->
+    <challenge id="1" name="5 Second Challenge (Mom)"       playertype="0" startingitems="105" endstage="6"  cursefilter="36" difficulty="1" />
+    <challenge id="2" name="5 Second Challenge (It Lives)"  playertype="0" startingitems="105" endstage="8"  cursefilter="36" difficulty="1" />
+    <challenge id="3" name="5 Second Challenge (Mother)"    playertype="0" startingitems="105" endstage="8"  cursefilter="36" difficulty="1" secretpath="true" />
+    <challenge id="4" name="5 Second Challenge (Blue Baby)" playertype="0" startingitems="105" endstage="11" cursefilter="36" difficulty="1" altpath="true" />
+    <challenge id="5" name="5 Second Challenge (The Lamb)"  playertype="0" startingitems="105" endstage="11" cursefilter="36" difficulty="1" altpath="false" />
 </challenges>
