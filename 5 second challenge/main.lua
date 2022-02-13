@@ -3,7 +3,7 @@ local json = require('json')
 local game = Game()
 
 mod.text = nil
-mod.roomStartTime = nil
+mod.roomStartTime = -1
 mod.allowCountdown = false
 mod.incrementAttempt = false
 mod.roomTime = 5
@@ -18,10 +18,11 @@ mod.animations = { 'none', 'fade', 'nap', 'pixelate', 'teleport', 'teleport (sho
 mod.roomTypes = { 'normal + boss', 'normal + boss + special', 'normal + boss + special + ultrasecret' }
 
 mod.state = {}
+mod.state.stageSeeds = {}    -- per stage/type
+mod.state.roomAttempts = {}  -- per stage/type
+mod.state.visitedCounts = {} -- per stage/type
 mod.state.enableEverywhere = false
 mod.state.isTenSecondChallenge = false
-mod.state.roomAttempts = {}
-mod.state.stageSeed = nil
 mod.state.selectedFont = 'upheaval'
 mod.state.selectedColor = 'white'
 mod.state.selectedAlpha = 10 -- this will be divided by 10 to give us a number between 0 and 1
@@ -32,25 +33,55 @@ function mod:onGameStart(isContinue)
   local level = game:GetLevel()
   local seeds = game:GetSeeds()
   local stageSeed = seeds:GetStageSeed(level:GetStage())
-  mod.state.stageSeed = stageSeed
+  mod:setStageSeed(stageSeed)
+  mod:clearRoomAttempts(false)
+  mod:clearVisitedCounts(false)
   mod:seedRng()
   
   if mod:HasData() then
     local _, state = pcall(json.decode, mod:LoadData()) -- deal with bad json data
     
     if type(state) == 'table' then
+      if isContinue and type(state.stageSeeds) == 'table' then
+        -- quick check to see if this is the same run being continued
+        if state.stageSeeds[mod:getStageIndex()] == stageSeed then
+          for key, value in pairs(state.stageSeeds) do
+            if type(key) == 'string' and math.type(value) == 'integer' then
+              mod.state.stageSeeds[key] = value
+            end
+          end
+          if type(state.roomAttempts) == 'table' then
+            for key, value in pairs(state.roomAttempts) do
+              if type(key) == 'string' and type(value) == 'table' then
+                mod.state.roomAttempts[key] = {}
+                for k, v in pairs(value) do
+                  if type(k) == 'string' and math.type(v) == 'integer' then
+                    mod.state.roomAttempts[key][k] = v
+                  end
+                end
+              end
+            end
+          end
+          if type(state.visitedCounts) == 'table' then
+            for key, value in pairs(state.visitedCounts) do
+              if type(key) == 'string' and type(value) == 'table' then
+                mod.state.visitedCounts[key] = {}
+                for k, v in pairs(value) do
+                  if type(k) == 'string' and math.type(v) == 'integer' then
+                    mod.state.visitedCounts[key][k] = v
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
       if type(state.enableEverywhere) == 'boolean' then
         mod.state.enableEverywhere = state.enableEverywhere
       end
       if type(state.isTenSecondChallenge) == 'boolean' then
         mod.state.isTenSecondChallenge = state.isTenSecondChallenge
         mod.roomTime = state.isTenSecondChallenge and 10 or 5
-      end
-      if math.type(state.stageSeed) == 'integer' and type(state.roomAttempts) == 'table' then
-        -- quick check to see if this is the same run being continued
-        if state.stageSeed == stageSeed then
-          mod.state.roomAttempts = state.roomAttempts
-        end
       end
       if type(state.selectedFont) == 'string' and mod:getSelectedFontIndex(state.selectedFont) >= 1 then
         mod.state.selectedFont = state.selectedFont
@@ -75,15 +106,12 @@ function mod:onGameStart(isContinue)
         mod.state.selectedRoomTypes = state.selectedRoomTypes
       end
     end
-    
-    if isContinue then
-      -- we don't want to increment if continuing
-      -- this happens after onNewRoom
-      mod.incrementAttempt = false
-    else
-      -- clear attempts if we're starting a new run
-      mod:clearRoomAttempts()
-    end
+  end
+  
+  if isContinue then
+    -- we don't want to increment if continuing
+    -- this happens after onNewRoom
+    mod.incrementAttempt = false
   end
   
   mod.font:Load(mod.fonts[mod:getSelectedFontIndex(mod.state.selectedFont)][2])
@@ -91,6 +119,9 @@ end
 
 function mod:onGameExit()
   mod:SaveData(json.encode(mod.state))
+  mod:clearStageSeeds()
+  mod:clearRoomAttempts(true)
+  mod:clearVisitedCounts(true)
 end
 
 -- this will clear room attempts when reseed is called
@@ -98,18 +129,20 @@ function mod:onNewLevel()
   local level = game:GetLevel()
   local seeds = game:GetSeeds()
   local stageSeed = seeds:GetStageSeed(level:GetStage())
-  mod.state.stageSeed = stageSeed
-  mod:clearRoomAttempts()
+  mod:setStageSeed(stageSeed)
+  mod:clearRoomAttempts(false)
+  mod:clearVisitedCounts(false)
 end
 
 function mod:onNewRoom()
   local level = game:GetLevel()
   -- level:GetRoomByIdx(level:GetCurrentRoomIndex(), -1) -- read/write
   local roomDesc = level:GetCurrentRoomDesc()            -- read-only
-  mod.roomStartTime = nil
+  mod.roomStartTime = -1
   mod.text = nil
   mod.allowCountdown = mod:allowRoomCountdown(roomDesc)
-  mod.incrementAttempt = true
+  mod.incrementAttempt = roomDesc.VisitedCount > mod:getVisitedCount(roomDesc) -- could be false if we used the glowing hour glass
+  mod:setVisitedCount(roomDesc)
 end
 
 function mod:onUpdate()
@@ -122,14 +155,14 @@ function mod:onUpdate()
     local roomDesc = level:GetCurrentRoomDesc()
     
     if roomDesc.Clear then
-      mod.roomStartTime = nil
+      mod.roomStartTime = -1
       mod.text = nil
     else
       -- game:GetRoom():GetFrameCount()
       -- game:GetLevel():GetCurrentRoom():GetFrameCount()
       local frameCount = game:GetFrameCount()
       
-      if mod.roomStartTime == nil then
+      if mod.roomStartTime < 0 then
         mod.roomStartTime = frameCount
         if mod.incrementAttempt then
           mod:incrementRoomAttempt(roomDesc)
@@ -228,12 +261,12 @@ function mod:allowRoomCountdown(roomDesc)
   local stageType = level:GetStageType()
   
   -- knife piece 2 in mines alt dimension (otherwise you can trigger mother's shadow multiple times)
-  if stage == LevelStage.STAGE2_2 and (stageType == StageType.STAGETYPE_REPENTANCE or stageType == StageType.STAGETYPE_REPENTANCE_B) and mod:getDimension(roomDesc) == 1 then
+  if (stage == LevelStage.STAGE2_2 or (mod:hasCurseOfTheLabyrinth() and stage == LevelStage.STAGE2_1)) and (stageType == StageType.STAGETYPE_REPENTANCE or stageType == StageType.STAGETYPE_REPENTANCE_B) and mod:getDimension(roomDesc) == 1 then
     return false
   end
   
   -- mom/dad's note (you're supposed to be trapped in this fight, there's no door to leave)
-  if stage == LevelStage.STAGE3_2 and roomDesc.Data.Type == RoomType.ROOM_BOSS then
+  if (stage == LevelStage.STAGE3_2 or (mod:hasCurseOfTheLabyrinth() and stage == LevelStage.STAGE3_1)) and roomDesc.Data.Type == RoomType.ROOM_BOSS and roomDesc.Data.Name == 'Mom' then
     return false
   end
   
@@ -291,23 +324,88 @@ function mod:allowRoomCountdown(roomDesc)
   return true
 end
 
-function mod:clearRoomAttempts()
-  for key, _ in pairs(mod.state.roomAttempts) do
-    mod.state.roomAttempts[key] = nil
+function mod:clearRoomAttempts(clearAll)
+  if clearAll then
+    for key, _ in pairs(mod.state.roomAttempts) do
+      mod.state.roomAttempts[key] = nil
+    end
+  else
+    mod.state.roomAttempts[mod:getStageIndex()] = nil
+  end
+end
+
+function mod:incrementRoomAttempt(roomDesc)
+  local stageIndex = mod:getStageIndex()
+  if type(mod.state.roomAttempts[stageIndex]) ~= 'table' then
+    mod.state.roomAttempts[stageIndex] = {}
+  end
+  
+  local listIdx = tostring(roomDesc.ListIndex) -- json.encode has trouble if this is numeric (tables are ambiguous -> array/object)
+  if math.type(mod.state.roomAttempts[stageIndex][listIdx]) ~= 'integer' then
+    mod.state.roomAttempts[stageIndex][listIdx] = 1
+  else
+    mod.state.roomAttempts[stageIndex][listIdx] = mod.state.roomAttempts[stageIndex][listIdx] + 1
   end
 end
 
 function mod:getRoomAttempt(roomDesc)
+  local stageIndex = mod:getStageIndex()
   local listIdx = tostring(roomDesc.ListIndex)
-  return mod.state.roomAttempts[listIdx]
+  
+  if type(mod.state.roomAttempts[stageIndex]) ~= 'table' or math.type(mod.state.roomAttempts[stageIndex][listIdx]) ~= 'integer' then
+    mod:incrementRoomAttempt(roomDesc)
+  end
+  
+  return mod.state.roomAttempts[stageIndex][listIdx]
 end
 
-function mod:incrementRoomAttempt(roomDesc)
-  local listIdx = tostring(roomDesc.ListIndex) -- json.encode has trouble if this is numeric (tables are ambiguous -> array/object)
-  if mod.state.roomAttempts[listIdx] == nil then
-    mod.state.roomAttempts[listIdx] = 1
+function mod:clearVisitedCounts(clearAll)
+  if clearAll then
+    for key, _ in pairs(mod.state.visitedCounts) do
+      mod.state.visitedCounts[key] = nil
+    end
   else
-    mod.state.roomAttempts[listIdx] = mod.state.roomAttempts[listIdx] + 1
+    mod.state.visitedCounts[mod:getStageIndex()] = nil
+  end
+end
+
+function mod:getVisitedCount(roomDesc)
+  local stageIndex = mod:getStageIndex()
+  local listIdx = tostring(roomDesc.ListIndex)
+  
+  if type(mod.state.visitedCounts[stageIndex]) ~= 'table' or math.type(mod.state.visitedCounts[stageIndex][listIdx]) ~= 'integer' then
+    return 0
+  end
+  
+  return mod.state.visitedCounts[mod:getStageIndex()][listIdx]
+end
+
+function mod:setVisitedCount(roomDesc)
+  local stageIndex = mod:getStageIndex()
+  if type(mod.state.visitedCounts[stageIndex]) ~= 'table' then
+    mod.state.visitedCounts[stageIndex] = {}
+  end
+  
+  local listIdx = tostring(roomDesc.ListIndex)
+  mod.state.visitedCounts[stageIndex][listIdx] = roomDesc.VisitedCount
+end
+
+function mod:getStageIndex()
+  local level = game:GetLevel()
+  return level:GetStage() .. '-' .. level:GetStageType() .. '-' .. (level:IsAltStage() and 1 or 0) .. '-' .. (level:IsPreAscent() and 1 or 0) .. '-' .. (level:IsAscent() and 1 or 0)
+end
+
+function mod:getStageSeed()
+  return mod.state.stageSeeds[mod:getStageIndex()]
+end
+
+function mod:setStageSeed(seed)
+  mod.state.stageSeeds[mod:getStageIndex()] = seed
+end
+
+function mod:clearStageSeeds()
+  for key, _ in pairs(mod.state.stageSeeds) do
+    mod.state.stageSeeds[key] = nil
   end
 end
 
@@ -341,6 +439,14 @@ function mod:isChallenge()
          challenge == Isaac.GetChallengeIdByName('5 Second Challenge (Blue Baby)') or
          challenge == Isaac.GetChallengeIdByName('5 Second Challenge (The Lamb)') or
          (challenge == Challenge.CHALLENGE_NULL and mod.state.enableEverywhere and not game:IsGreedMode()) -- game.Difficulty
+end
+
+function mod:hasCurseOfTheLabyrinth()
+  local level = game:GetLevel()
+  local curses = level:GetCurses()
+  local curse = LevelCurse.CURSE_OF_LABYRINTH
+  
+  return curses & curse == curse
 end
 
 function mod:seedRng()
