@@ -117,11 +117,24 @@ function mod:onGameStart(isContinue)
   mod.font:Load(mod.fonts[mod:getSelectedFontIndex(mod.state.selectedFont)][2])
 end
 
-function mod:onGameExit()
-  mod:SaveData(json.encode(mod.state))
-  mod:clearStageSeeds()
-  mod:clearRoomAttempts(true)
-  mod:clearVisitedCounts(true)
+function mod:onGameExit(shouldSave)
+  if shouldSave then
+    mod:SaveData(json.encode(mod.state))
+    mod:clearStageSeeds()
+    mod:clearRoomAttempts(true)
+    mod:clearVisitedCounts(true)
+  else
+    mod:clearStageSeeds()
+    mod:clearRoomAttempts(true)
+    mod:clearVisitedCounts(true)
+    mod:SaveData(json.encode(mod.state))
+  end
+  
+  mod.text = nil
+  mod.roomStartTime = -1
+  mod.allowCountdown = false
+  mod.incrementAttempt = false
+  mod.showFontSample = false
 end
 
 -- this will clear room attempts when reseed is called
@@ -392,7 +405,7 @@ end
 
 function mod:getStageIndex()
   local level = game:GetLevel()
-  return level:GetStage() .. '-' .. level:GetStageType() .. '-' .. (level:IsAltStage() and 1 or 0) .. '-' .. (level:IsPreAscent() and 1 or 0) .. '-' .. (level:IsAscent() and 1 or 0)
+  return game:GetVictoryLap() .. '-' .. level:GetStage() .. '-' .. level:GetStageType() .. '-' .. (level:IsAltStage() and 1 or 0) .. '-' .. (level:IsPreAscent() and 1 or 0) .. '-' .. (level:IsAscent() and 1 or 0)
 end
 
 function mod:getStageSeed()
