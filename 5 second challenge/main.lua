@@ -391,7 +391,7 @@ function mod:getVisitedCount(roomDesc)
     return 0
   end
   
-  return mod.state.visitedCounts[mod:getStageIndex()][listIdx]
+  return mod.state.visitedCounts[stageIndex][listIdx]
 end
 
 function mod:setVisitedCount(roomDesc)
