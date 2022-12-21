@@ -121,7 +121,7 @@ end
 
 function mod:onGameExit(shouldSave)
   if shouldSave then
-    mod:SaveData(json.encode(mod.state))
+    mod:save()
     mod:clearStageSeeds()
     mod:clearRoomAttempts(true)
     mod:clearVisitedCounts(true)
@@ -129,7 +129,7 @@ function mod:onGameExit(shouldSave)
     mod:clearStageSeeds()
     mod:clearRoomAttempts(true)
     mod:clearVisitedCounts(true)
-    mod:SaveData(json.encode(mod.state))
+    mod:save()
   end
   
   mod.text = nil
@@ -137,6 +137,30 @@ function mod:onGameExit(shouldSave)
   mod.allowCountdown = false
   mod.incrementAttempt = false
   mod.showFontSample = false
+end
+
+function mod:save(settingsOnly)
+  if settingsOnly then
+    local _, state
+    if mod:HasData() then
+      _, state = pcall(json.decode, mod:LoadData())
+    end
+    if type(state) ~= 'table' then
+      state = {}
+    end
+    
+    state.enableEverywhere = mod.state.enableEverywhere
+    state.isTenSecondChallenge = mod.state.isTenSecondChallenge
+    state.selectedFont = mod.state.selectedFont
+    state.selectedColor = mod.state.selectedColor
+    state.selectedAlpha = mod.state.selectedAlpha
+    state.selectedAnimation = mod.state.selectedAnimation
+    state.selectedRoomTypes = mod.state.selectedRoomTypes
+    
+    mod:SaveData(json.encode(state))
+  else
+    mod:SaveData(json.encode(mod.state))
+  end
 end
 
 -- this will clear room attempts when reseed is called
@@ -602,6 +626,7 @@ function mod:setupModConfigMenu()
       end,
       OnChange = function(b)
         mod.state.enableEverywhere = b
+        mod:save(true)
       end,
       Info = { 'Disabled: only enabled via challenge menu', 'Enabled: also enabled in normal/hard mode', 'Does not work in greed/greedier mode' }
     }
@@ -620,6 +645,7 @@ function mod:setupModConfigMenu()
       OnChange = function(b)
         mod.state.isTenSecondChallenge = b
         mod.roomTime = b and 10 or 5
+        mod:save(true)
       end,
       Info = { '5 second challenge: default', '10 second challenge: easier' }
     }
@@ -639,6 +665,7 @@ function mod:setupModConfigMenu()
       end,
       OnChange = function(n)
         mod.state.selectedAnimation = mod.animations[n]
+        mod:save(true)
       end,
       Info = { 'Select a room transition animation' }
     }
@@ -659,6 +686,7 @@ function mod:setupModConfigMenu()
       end,
       OnChange = function(n)
         mod.state.selectedRoomTypes = mod.roomTypes[n]
+        mod:save(true)
       end,
       Info = { 'Select the room types this mod applies to' }
     }
@@ -684,6 +712,7 @@ function mod:setupModConfigMenu()
       OnChange = function(n)
         mod.state.selectedFont = mod.fonts[n][1]
         mod.font:Load(mod.fonts[n][2])
+        mod:save(true)
       end,
       Info = { 'Select a font' }
     }
@@ -706,6 +735,7 @@ function mod:setupModConfigMenu()
         mod.kcolor.Red = mod.colors[n][2] / 255
         mod.kcolor.Green = mod.colors[n][3] / 255
         mod.kcolor.Blue = mod.colors[n][4] / 255
+        mod:save(true)
       end,
       Info = { 'Select a color' }
     }
@@ -724,6 +754,7 @@ function mod:setupModConfigMenu()
       OnChange = function(n)
         mod.state.selectedAlpha = n
         mod.kcolor.Alpha = n / 10
+        mod:save(true)
       end,
       Info = { 'Select an opacity' }
     }
