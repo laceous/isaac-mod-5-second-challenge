@@ -19,7 +19,6 @@ mod.animations = { 'none', 'fade', 'nap', 'pixelate', 'teleport', 'teleport (sho
 mod.roomTypes = { 'normal + boss', 'normal + boss + special', 'normal + boss + special + ultrasecret' }
 
 mod.state = {}
-mod.state.stageSeeds = {}    -- per stage
 mod.state.roomAttempts = {}  -- per stage/type
 mod.state.visitedCounts = {} -- per stage/type
 mod.state.enableEverywhere = false
@@ -31,11 +30,6 @@ mod.state.selectedAnimation = 'teleport'
 mod.state.selectedRoomTypes = 'normal + boss + special + ultrasecret'
 
 function mod:onGameStart(isContinue)
-  local level = game:GetLevel()
-  local stage = level:GetStage()
-  local seeds = game:GetSeeds()
-  local stageSeed = seeds:GetStageSeed(stage)
-  mod:setStageSeed(stageSeed)
   mod:clearRoomAttempts(false)
   mod:clearVisitedCounts(false)
   mod:seedRng()
@@ -44,34 +38,26 @@ function mod:onGameStart(isContinue)
     local _, state = pcall(json.decode, mod:LoadData()) -- deal with bad json data
     
     if type(state) == 'table' then
-      if isContinue and type(state.stageSeeds) == 'table' then
-        -- quick check to see if this is the same run being continued
-        if state.stageSeeds[tostring(stage)] == stageSeed then
-          for key, value in pairs(state.stageSeeds) do
-            if type(key) == 'string' and math.type(value) == 'integer' then
-              mod.state.stageSeeds[key] = value
-            end
-          end
-          if type(state.roomAttempts) == 'table' then
-            for key, value in pairs(state.roomAttempts) do
-              if type(key) == 'string' and type(value) == 'table' then
-                mod.state.roomAttempts[key] = {}
-                for k, v in pairs(value) do
-                  if type(k) == 'string' and math.type(v) == 'integer' then
-                    mod.state.roomAttempts[key][k] = v
-                  end
+      if isContinue then
+        if type(state.roomAttempts) == 'table' then
+          for key, value in pairs(state.roomAttempts) do
+            if type(key) == 'string' and type(value) == 'table' then
+              mod.state.roomAttempts[key] = {}
+              for k, v in pairs(value) do
+                if type(k) == 'string' and math.type(v) == 'integer' then
+                  mod.state.roomAttempts[key][k] = v
                 end
               end
             end
           end
-          if type(state.visitedCounts) == 'table' then
-            for key, value in pairs(state.visitedCounts) do
-              if type(key) == 'string' and type(value) == 'table' then
-                mod.state.visitedCounts[key] = {}
-                for k, v in pairs(value) do
-                  if type(k) == 'string' and math.type(v) == 'integer' then
-                    mod.state.visitedCounts[key][k] = v
-                  end
+        end
+        if type(state.visitedCounts) == 'table' then
+          for key, value in pairs(state.visitedCounts) do
+            if type(key) == 'string' and type(value) == 'table' then
+              mod.state.visitedCounts[key] = {}
+              for k, v in pairs(value) do
+                if type(k) == 'string' and math.type(v) == 'integer' then
+                  mod.state.visitedCounts[key][k] = v
                 end
               end
             end
@@ -122,11 +108,9 @@ end
 function mod:onGameExit(shouldSave)
   if shouldSave then
     mod:save()
-    mod:clearStageSeeds()
     mod:clearRoomAttempts(true)
     mod:clearVisitedCounts(true)
   else
-    mod:clearStageSeeds()
     mod:clearRoomAttempts(true)
     mod:clearVisitedCounts(true)
     mod:save()
@@ -165,10 +149,6 @@ end
 
 -- this will clear room attempts when reseed is called
 function mod:onNewLevel()
-  local level = game:GetLevel()
-  local seeds = game:GetSeeds()
-  local stageSeed = seeds:GetStageSeed(level:GetStage())
-  mod:setStageSeed(stageSeed)
   mod:clearRoomAttempts(false)
   mod:clearVisitedCounts(false)
 end
@@ -442,17 +422,6 @@ function mod:getStageIndex()
   end
   
   return game:GetVictoryLap() .. '-' .. stage .. '-' .. stageType .. '-' .. (isAltStage and 1 or 0) .. '-' .. (level:IsPreAscent() and 1 or 0) .. '-' .. (level:IsAscent() and 1 or 0)
-end
-
-function mod:setStageSeed(seed)
-  local level = game:GetLevel()
-  mod.state.stageSeeds[tostring(level:GetStage())] = seed
-end
-
-function mod:clearStageSeeds()
-  for key, _ in pairs(mod.state.stageSeeds) do
-    mod.state.stageSeeds[key] = nil
-  end
 end
 
 function mod:getCurrentDimension()
