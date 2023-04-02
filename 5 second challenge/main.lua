@@ -271,36 +271,45 @@ function mod:allowRoomCountdown(roomDesc)
   -- some of these special rooms can be reloaded, some crash the game when reloaded, some can't be re-entered if you leave them
   -- you'd need to write a bunch of special rules for these if you want to include some of them
   -- https://wofsauge.github.io/IsaacDocs/rep/enums/GridRooms.html
-  if roomDesc.SafeGridIndex < 0 then
+  if roomDesc.GridIndex < 0 then
     return false
   end
   
+  local seeds = game:GetSeeds()
   local level = game:GetLevel()
   local stage = level:GetStage()
   local stageType = level:GetStageType()
+  local lastBossRoomListIndex = level:GetLastBossRoomListIndex()
+  local hasCurse = mod:hasCurseOfTheLabyrinth()
+  local dimension = mod:getDimension(roomDesc)
   
   -- knife piece 2 in mines alt dimension (otherwise you can trigger mother's shadow multiple times)
-  if (stage == LevelStage.STAGE2_2 or (mod:hasCurseOfTheLabyrinth() and stage == LevelStage.STAGE2_1)) and (stageType == StageType.STAGETYPE_REPENTANCE or stageType == StageType.STAGETYPE_REPENTANCE_B) and mod:getDimension(roomDesc) == 1 then
+  if (stage == LevelStage.STAGE2_2 or (hasCurse and stage == LevelStage.STAGE2_1)) and (stageType == StageType.STAGETYPE_REPENTANCE or stageType == StageType.STAGETYPE_REPENTANCE_B) and dimension == 1 then
     return false
   end
   
   -- mom/dad's note (you're supposed to be trapped in this fight, there's no door to leave)
-  if (stage == LevelStage.STAGE3_2 or (mod:hasCurseOfTheLabyrinth() and stage == LevelStage.STAGE3_1)) and roomDesc.Data.Type == RoomType.ROOM_BOSS and roomDesc.Data.Name == 'Mom' then
+  if (stage == LevelStage.STAGE3_2 or (hasCurse and stage == LevelStage.STAGE3_1)) and roomDesc.ListIndex == lastBossRoomListIndex then
     return false
   end
   
   -- hush (this is too similar to mother/mega satan)
-  if stage == LevelStage.STAGE4_3 and roomDesc.Data.Type == RoomType.ROOM_BOSS then
+  if stage == LevelStage.STAGE4_3 and roomDesc.ListIndex == lastBossRoomListIndex then
     return false
   end
   
   -- delirium (this is too similar to mother/mega satan)
-  if stage == LevelStage.STAGE7 and roomDesc.Data.Type == RoomType.ROOM_BOSS and roomDesc.Data.Shape == RoomShape.ROOMSHAPE_2x2 then
+  if stage == LevelStage.STAGE7 and roomDesc.Data.Type == RoomType.ROOM_BOSS and roomDesc.Data.Shape == RoomShape.ROOMSHAPE_2x2 and dimension == 0 then
     return false
   end
   
   -- dogma (this is too similar to hush)
-  if stage == LevelStage.STAGE8 and roomDesc.Data.Shape == RoomShape.ROOMSHAPE_1x2 then
+  if stage == LevelStage.STAGE8 and roomDesc.ListIndex == lastBossRoomListIndex then
+    return false
+  end
+  
+  -- point of no return
+  if seeds:HasSeedEffect(SeedEffect.SEED_NO_BOSS_ROOM_EXITS) and roomDesc.ListIndex == lastBossRoomListIndex then
     return false
   end
   
