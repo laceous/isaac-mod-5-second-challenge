@@ -14,7 +14,6 @@ mod.fonts = {}
 mod.kcolor = KColor(255/255, 255/255, 255/255, 1) -- white w/ full alpha
 mod.colors = {}
 mod.fontSample = '0123456789'
-mod.showFontSample = false
 mod.animations = { 'none', 'fade', 'nap', 'pixelate', 'teleport', 'teleport (shorter)' }
 mod.roomTypes = { 'normal + boss', 'normal + boss + special', 'normal + boss + special + ultrasecret' }
 
@@ -120,7 +119,6 @@ function mod:onGameExit(shouldSave)
   mod.roomStartTime = -1
   mod.allowCountdown = false
   mod.incrementAttempt = false
-  mod.showFontSample = false
 end
 
 function mod:save(settingsOnly)
@@ -586,6 +584,13 @@ function mod:populateColorsTable()
   table.insert(mod.colors, { 'purple', 128, 0, 128 })
 end
 
+function mod:showFontSample()
+  if ScreenHelper then                                           -- this is from ModConfigMenu
+    local pos = ScreenHelper.GetScreenCenter() + Vector(68, -18) -- the positioning is copied from ModConfigMenu
+    mod.font:DrawString(mod.fontSample, pos.X - mod.font:GetStringWidth(mod.fontSample)/2, pos.Y, mod.kcolor, 0, true)
+  end
+end
+
 -- start ModConfigMenu --
 function mod:setupModConfigMenu()
   for _, v in ipairs({ 'General', 'Display' }) do
@@ -684,7 +689,7 @@ function mod:setupModConfigMenu()
       Minimum = 1,
       Maximum = #mod.fonts,
       Display = function()
-        mod.showFontSample = true
+        mod:showFontSample()
         return mod.state.selectedFont
       end,
       OnChange = function(n)
@@ -738,16 +743,6 @@ function mod:setupModConfigMenu()
     }
   )
 end
-
-function mod:onRenderMenu()
-  if mod.showFontSample then
-    if ScreenHelper then                                           -- this is from ModConfigMenu
-      local pos = ScreenHelper.GetScreenCenter() + Vector(68, -18) -- the positioning is copied from ModConfigMenu
-      mod.font:DrawString(mod.fontSample, pos.X - mod.font:GetStringWidth(mod.fontSample)/2, pos.Y, mod.kcolor, 0, true)
-    end
-    mod.showFontSample = false
-  end
-end
 -- end ModConfigMenu --
 
 mod:populateFontsTable()
@@ -761,5 +756,4 @@ mod:AddCallback(ModCallbacks.MC_POST_RENDER, mod.onRenderPlayer)
 
 if ModConfigMenu then
   mod:setupModConfigMenu()
-  mod:AddCallback(ModCallbacks.MC_POST_RENDER, mod.onRenderMenu)
 end
